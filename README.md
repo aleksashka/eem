@@ -3,7 +3,7 @@ eem-updown-desc
 
 Cisco EEM applet for generating syslog messages with interfaces' descriptions
 
-To use just go in configuration mode (configure terminal) and paste the code
+To use just go in configuration mode (configure terminal) and paste the [code](https://github.com/aleksashka/eem-updown-desc)
 
 Example for IOS **12.4(24)T2**:
 ```
