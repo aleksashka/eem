@@ -1,7 +1,10 @@
 event manager applet EEM-UPDOWN-DESC
  description "Create syslog with interface description for each LINEPROTO-5-UPDOWN syslog message"
  event syslog pattern "%LINEPROTO-5-UPDOWN: Line protocol on Interface.* changed state to"
- action 1 regexp "%LINEPROTO-5-UPDOWN: Line protocol on Interface (.+), changed state to (.+)" "$_syslog_msg" match _INTF _STATE
- action 2 cli command "show interface $_INTF description | e ^Interface"
- action 3 regexp ".........................................................(.*)\r\n" "$_cli_result" match _DESC
- action 4 syslog priority notification facility EEMUPDOWN msg "$_INTF ($_DESC) -> $_STATE"
+ action 1.0 regexp "%LINEPROTO-5-UPDOWN: Line protocol on Interface (.+), changed state to (.+)" "$_syslog_msg" match _INTF _STATE
+ action 2.0 set _DESC "no description"
+ action 2.1 cli command "show interface $_INTF description | e ^Interface"
+ action 2.2 regexp ".........................................................(.+)\r\n" "$_cli_result" match _DESC
+ action 3.0 syslog priority notification msg "$_INTF ($_DESC) -> $_STATE"
+ action 3.0 syslog priority notification facility EEMUPDOWN msg "$_INTF ($_DESC) -> $_STATE"
+ exit
