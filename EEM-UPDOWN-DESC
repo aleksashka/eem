@@ -1,13 +1,25 @@
-! Delete previous version if exists
+! Delete previous version of applet if exists
 no event manager applet EEM-UPDOWN-DESC
 
 event manager applet EEM-UPDOWN-DESC
- description "v1.0 Create syslog with interface description for each LINEPROTO-5-UPDOWN syslog message"
+ description "v1.1 Create syslog with interface description for each LINEPROTO-5-UPDOWN syslog message"
  event syslog pattern "%LINEPROTO-5-UPDOWN: Line protocol on Interface.* changed state to"
+ !
+ ! Get Interface Name and new State
  action 1.0 regexp "%LINEPROTO-5-UPDOWN: Line protocol on Interface (.+), changed state to (.+)" "$_syslog_msg" match _INTF _STATE
+ !
+ ! Get Interface Description
  action 2.0 set _DESC "no description"
  action 2.1 cli command "show interface $_INTF description | e ^Interface"
  action 2.2 regexp ".........................................................(.+)\r\n" "$_cli_result" match _DESC
- action 3.0 syslog priority notification msg "$_INTF ($_DESC) -> $_STATE"
- action 3.0 syslog priority notification facility EEMUPDOWN msg "$_INTF ($_DESC) -> $_STATE"
- exit
+ action 2.3 regexp "\^\r\n% Invalid input detected at '\^' marker." "$_cli_result" match
+ !
+ ! Generate syslog message depending on interface existance
+ action 3.0 if $_regexp_result eq 1
+ action 3.1.1  syslog priority notification msg "$_INTF was deleted"
+ action 3.1.1  syslog priority notification facility EEMUPDOWN msg "$_INTF was deleted"
+ action 3.2 else
+ action 3.3.1  syslog priority notification msg "$_INTF ($_DESC) -> $_STATE"
+ action 3.3.1  syslog priority notification facility EEMUPDOWN msg "$_INTF ($_DESC) -> $_STATE"
+ action 3.4 end
+exit
