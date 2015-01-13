@@ -2,7 +2,7 @@
 no event manager applet EEM-UPDOWN-DESC
 
 event manager applet EEM-UPDOWN-DESC
- description "v1.1 Create syslog with interface description for each LINEPROTO-5-UPDOWN syslog message"
+ description "v1.1 Create syslog with interface description for each LINEPROTO-5-UPDOWN syslog message by a@alakin.org"
  event syslog pattern "%LINEPROTO-5-UPDOWN: Line protocol on Interface.* changed state to"
  !
  ! Get Interface Name and new State
