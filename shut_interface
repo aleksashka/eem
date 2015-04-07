@@ -1,0 +1,71 @@
+! EEM to shutdown interface
+no event manager applet SHUT_INT_GI_01
+event manager applet SHUT_INT_GI_01
+ event none
+ action 100 cli command "enable"
+ action 110 cli command "conf t"
+ action 120 cli command "int gi0/1"
+ action 130 cli command "shut"
+ action 140 cli command "end"
+!
+! Catch when interface goes up and set shutdown timer
+no event manager applet NO_SHUT_INT_GI_01
+event manager applet NO_SHUT_INT_GI_01
+ event tag 1.0 syslog pattern "Line protocol on Interface GigabitEthernet0/1, changed state to up"
+ action 100 cli command "enable"
+ action 110 cli command "conf t"
+ action 120 cli command "event manager applet SHUT_INT_GI_01"
+ action 130 cli command "event timer countdown time 15"
+ action 140 cli command "end"
+!
+! EEM produces log messages, so disable logging :)
+no event manager applet DISABLE_LOGGING
+event manager applet DISABLE_LOGGING
+ event cli pattern "logging (buf|con|mo)" sync yes
+ action 100 cli command "enable"
+ action 110 cli command "conf t"
+ action 120 cli command "no logging console"
+ action 130 cli command "no logging buffered"
+ action 140 cli command "no logging monitor"
+ action 150 cli command "end"
+ action 160 cli command "clear logging" pattern "confirm"
+ action 170 cli command "y"
+!
+! It is easy to spot EEM in show run, so disable show run :)
+no event manager applet NO_SHOW_RUN
+event manager applet NO_SHOW_RUN
+ event cli pattern "show run" sync yes
+ action 100 puts "SHOW RUN is disabled"
+!
+!
+! Automate cleaning things up after troubleshooting
+alias exec FINISH event manager run FINISH
+no event manager applet FINISH
+event manager applet FINISH
+ event none
+ action 100 cli command "enable"
+ action 110 cli command "conf t"
+ action 120 cli command "no alias exec FINISH"
+ action 130 cli command "line con 0"
+ action 140 cli command "no login"
+ action 150 cli command "privi l 15"
+ action 160 cli command "no event manager applet NO_SHOW_RUN"
+ action 170 cli command "no event manager applet DISABLE_LOGGING"
+ action 180 cli command "no event manager applet NO_SHUT_INT_GI_01"
+ action 190 cli command "no event manager applet SHUT_INT_GI_01"
+ action 200 cli command "no event manager applet FINISH"
+ action 210 cli command "logging buffered"
+ action 220 cli command "logging monitor"
+ action 230 cli command "logging console"
+ action 240 cli command "end"
+!
+line con 0
+ no login
+ privil level 15
+ exec-time 0 0
+end
+!
+! Let's play :)
+event manager run DISABLE_LOGGING
+event manager run SHUT_INT_GI_01
+exit
