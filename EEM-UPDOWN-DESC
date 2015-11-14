@@ -1,25 +1,52 @@
+! action regexp is supported since 12.4(22)T
+! action syslog _facility_ is supported since 15.0(1)M
+
 ! Delete previous version of applet if exists
 no event manager applet EEM-UPDOWN-DESC
 
 event manager applet EEM-UPDOWN-DESC
- description "v1.1 Create syslog with interface description for each LINEPROTO-5-UPDOWN syslog message by a@alakin.org"
+ description "v1.2 Create syslog with interface description for each LINEPROTO-5-UPDOWN syslog message by a@alakin.org"
  event syslog pattern "%LINEPROTO-5-UPDOWN: Line protocol on Interface.* changed state to"
  !
  ! Get Interface Name and new State
- action 1.0 regexp "%LINEPROTO-5-UPDOWN: Line protocol on Interface (.+), changed state to (.+)" "$_syslog_msg" match _INTF _STATE
+ action 100 regexp "%LINEPROTO-5-UPDOWN: Line protocol on Interface (.+), changed state to (.+)" "$_syslog_msg" match _INTF _STATE
  !
  ! Get Interface Description
- action 2.0 set _DESC "no description"
- action 2.1 cli command "show interface $_INTF description | e ^Interface"
- action 2.2 regexp ".........................................................(.+)\r\n" "$_cli_result" match _DESC
- action 2.3 regexp "\^\r\n% Invalid input detected at '\^' marker." "$_cli_result" match
+ action 110 set _DESC "no description"
+ action 111 set _INFO ""
+ action 112 set _ERR ""
+ action 120 cli command "show interface $_INTF | include ^  Description"
  !
- ! Generate syslog message depending on interface existance
- action 3.0 if $_regexp_result eq 1
- action 3.1.1  syslog priority notification msg "$_INTF was deleted"
- action 3.1.1  syslog priority notification facility EEMUPDOWN msg "$_INTF was deleted"
- action 3.2 else
- action 3.3.1  syslog priority notification msg "$_INTF ($_DESC) -> $_STATE"
- action 3.3.1  syslog priority notification facility EEMUPDOWN msg "$_INTF ($_DESC) -> $_STATE"
- action 3.4 end
+ ! Check if interface exists
+ action 200 regexp "\^\r\n% Invalid input detected at '\^' marker." "$_cli_result"
+ action 210 if $_regexp_result eq "1"
+ action 220  syslog priority notification msg "-> del  $_INTF"
+ action 220  syslog priority notification msg "-> del  $_INTF" facility EEM
+ !
+ action 300 else
+ ! Get description
+ action 310  regexp "^  Description: (.+)\r\n" "$_cli_result" match _DESC
+ !
+ ! Check if interface is administratively down
+ action 320  cli command "show interface $_INTF | include ^$_INTF"
+ action 322  regexp "err-disabled" "$_cli_result" _ERR
+ action 324  regexp " is administratively down" "$_cli_result"
+ action 326  if $_regexp_result eq "1"
+ action 328   set _STATE "shut"
+ !
+ ! Add spaces if state is "up"
+ action 330  elseif $_STATE eq "up"
+ action 332   set _STATE "up  "
+ !
+ ! Check if err-disabled
+ action 340  elseif $_ERR eq "err-disabled"
+ action 342   set _STATE "err "
+ action 344   cli command "show interface $_INTF status err-disabled | include err-disabled"
+ action 346   regexp "err-disabled( .+)\r\n" "$_cli_result" _match _INFO
+ !
+ action 350  end 
+ !
+ action 360  syslog priority notification msg "-> $_STATE '$_DESC' ($_INTF)$_INFO"
+ action 360  syslog priority notification msg "-> $_STATE '$_DESC' ($_INTF)$_INFO" facility EEM
+ action 400 end
 exit
