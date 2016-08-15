@@ -5,6 +5,7 @@
 no event manager applet EEM-UPDOWN-DESC
 
 event manager applet EEM-UPDOWN-DESC
+event manager applet EEM-UPDOWN-DESC authorization bypass
  description "v1.2 Create syslog with interface description for each LINEPROTO-5-UPDOWN syslog message by a@alakin.org"
  event syslog pattern "%LINEPROTO-5-UPDOWN: Line protocol on Interface.* changed state to"
  !
